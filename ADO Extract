@@ -1,0 +1,37 @@
+import csv
+from azure.devops.connection import Connection
+from msrest.authentication import BasicAuthentication
+
+# Replace with your personal access token and organization URL
+personal_access_token = '<your_personal_access_token>'
+organization_url = 'https://dev.azure.com/<your_organization>'
+
+# Create a connection to the Azure DevOps organization
+credentials = BasicAuthentication('', personal_access_token)
+connection = Connection(base_url=organization_url, creds=credentials)
+
+# Define the query to retrieve work item data
+wiql_query = "SELECT [System.Id], [System.Title], [System.State], [System.AreaPath], [System.IterationPath] FROM WorkItems WHERE [System.WorkItemType] = 'Bug'"
+
+# Execute the query and retrieve the results
+wit_client = connection.clients.get_work_item_tracking_client()
+query_result = wit_client.query_by_wiql(wiql_query).work_items
+
+# Create a list of dictionaries containing the work item data
+work_items = []
+for work_item in query_result:
+    work_item_dict = {
+        'ID': work_item.id,
+        'Title': work_item.fields['System.Title'],
+        'State': work_item.fields['System.State'],
+        'Area Path': work_item.fields['System.AreaPath'],
+        'Iteration Path': work_item.fields['System.IterationPath']
+    }
+    work_items.append(work_item_dict)
+
+# Export the work item data to a CSV file
+with open('work_items.csv', 'w', newline='') as csv_file:
+    writer = csv.DictWriter(csv_file, fieldnames=['ID', 'Title', 'State', 'Area Path', 'Iteration Path'])
+    writer.writeheader()
+    for work_item in work_items:
+        writer.writerow(work_item)
